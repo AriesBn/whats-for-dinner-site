@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"adb exec-out screencap -p > /mnt/c/Users/16084/screenshot_now.png 2>/dev/null && echo \\\"ok: $(stat -c%s /mnt/c/Users/16084/screenshot_now.png 2>/dev/null || echo 'missing')\\\"\",\"description...",
+  "error": "Exit code 1\n/usr/bin/bash: line 1: /mnt/c/Users/16084/screenshot_now.png: No such file or directory",
+  "timestamp": "2026-04-03T14:51:09.268Z",
+  "retry_count": 1
+}

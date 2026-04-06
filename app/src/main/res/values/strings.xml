@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">晚饭吃什么</string>
+    <string name="nav_home">首页</string>
+    <string name="nav_picker">今晚吃什么</string>
+    <string name="nav_settings">设置</string>
+    <string name="add_dish">添加菜品</string>
+    <string name="dish_name">菜品名称</string>
+    <string name="dish_name_hint">输入菜品名称</string>
+    <string name="select_category">选择分类</string>
+    <string name="category_meat">荤菜</string>
+    <string name="category_veg">素菜</string>
+    <string name="category_soup">汤</string>
+    <string name="category_staple">主食</string>
+    <string name="take_photo">拍照</string>
+    <string name="choose_photo">从相册选择</string>
+    <string name="save">保存</string>
+    <string name="cancel">取消</string>
+    <string name="delete">删除</string>
+    <string name="confirm_delete">确认删除</string>
+    <string name="confirm_delete_desc">确定要删除这个菜品吗？</string>
+    <string name="add_category">添加分类</string>
+    <string name="today_title">今天吃什么？</string>
+    <string name="pick_button">🍽️ 选一道！</string>
+    <string name="pick_result">今天就吃</string>
+    <string name="empty_dishes">还没有菜品，点右上角添加吧～</string>
+    <string name="notification_title">今日推荐</string>
+    <string name="notification_body_format">今天推荐你吃：%s</string>
+    <string name="settings_notification">每日推送</string>
+    <string name="settings_notification_time">推送时间</string>
+    <string name="settings_notification_enabled">启用每日推送</string>
+    <string name="settings_app_info">关于应用</string>
+    <string name="settings_version">版本</string>
+    <string name="settings_app_desc">帮你解决每天不知道吃什么的问题！</string>
+    <string name="empty_category">这个分类还没有菜品～</string>
+    <string name="photo_required">请拍摄或选择照片</string>
+    <string name="photo_taken">照片已选择</string>
+    <string name="name_required">请输入菜品名称</string>
+    <string name="dish_added">菜品已添加</string>
+    <string name="dish_deleted">菜品已删除</string>
+    <string name="undo">撤销</string>
+    <string name="no_dishes">还没有菜品</string>
+</resources>
