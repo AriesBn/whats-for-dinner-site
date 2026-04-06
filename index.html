@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>晚饭吃什么 - App 介绍</title>
+  <title>What For Dinner - App 介绍</title>
   <style>
     :root {
       --bg: #fff7f0;
@@ -386,6 +386,10 @@
         flex-direction: column;
         align-items: flex-start;
       }
+
+      .hero-visual {
+        min-height: 360px;
+      }
     }
   </style>
 </head>
@@ -393,48 +397,49 @@
   <div class="shell hero">
     <div class="topbar">
       <div class="brand">
-        <div class="brand-mark">饭</div>
-        <span>晚饭吃什么</span>
+        <div class="brand-mark">食</div>
+        <span>What For Dinner</span>
       </div>
-      <a class="download-link" href="../app/build/outputs/apk/debug/app-debug.apk" download>下载 Android 安装包</a>
+      <a class="download-link" href="./website/app-debug.apk" download="what-for-dinner.apk">下载 Android 安装包</a>
     </div>
 
     <section class="hero-card">
       <div>
-        <div class="eyebrow">本地选菜 · 图片管理 · 每日清空</div>
-        <h1>把“晚上吃什么”<br>变成一个有答案的动作。</h1>
+        <div class="eyebrow">快速决定晚饭 · 暖橘食欲系界面 · 随手就能开吃</div>
+        <h1>今晚吃什么<br>不再反复纠结</h1>
         <p class="lead">
-          “晚饭吃什么”是一款本地菜品管理 App。你可以拍照录入菜品，按分类挑选，在“今晚吃什么”里集中查看已选菜，并且每天 0:00 自动清空今晚列表，第二天重新开始。
+          What For Dinner 用更温暖、更有食欲的橙米色视觉，把“选晚饭”这件小事做得轻松直接。
+          打开 App，浏览菜品、随机选择、快速落定，不用再在外卖、冰箱和聊天框之间来回犹豫。
         </p>
 
         <div class="hero-actions">
-          <a class="btn btn-primary" href="../app/build/outputs/apk/debug/app-debug.apk" download>立即下载 APK</a>
-          <a class="btn btn-secondary" href="#features">查看功能</a>
+          <a class="btn btn-primary" href="./website/app-debug.apk" download="what-for-dinner.apk">立即下载 APK</a>
+          <a class="btn btn-secondary" href="#features">查看页面亮点</a>
         </div>
 
         <div class="stats">
           <div class="stat">
-            <strong>4 类</strong>
-            <span>预置分类：荤菜、素菜、汤、主食</span>
+            <strong>4 个分类</strong>
+            <span>家常菜、快手菜、重口味和清淡向，常见晚饭决策场景都能覆盖。</span>
           </div>
           <div class="stat">
-            <strong>0:00</strong>
-            <span>午夜自动清空“今晚吃什么”</span>
+            <strong>0:00 压力</strong>
+            <span>减少“吃什么”决策疲劳，点开就能进入选择状态。</span>
           </div>
           <div class="stat">
-            <strong>本地</strong>
-            <span>数据与图片都保存在设备内</span>
+            <strong>暖橘风格</strong>
+            <span>页面和 App 主色统一，更贴近食物、烟火气和晚餐氛围。</span>
           </div>
         </div>
       </div>
 
       <div class="hero-visual">
-        <div class="badge">晚饭不再靠猜</div>
+        <div class="badge">当前 App 视觉预览</div>
         <div class="float-card main">
-          <img src="./wfd-home-current.png" alt="首页分类界面">
+          <img src="./website/wfd-home-current.png" alt="What For Dinner 首页截图">
         </div>
         <div class="float-card side">
-          <img src="./wfd-picker-latest.png" alt="今晚吃什么界面">
+          <img src="./website/wfd-picker-latest.png" alt="What For Dinner 随机选择页截图">
         </div>
       </div>
     </section>
@@ -442,64 +447,64 @@
 
   <div class="shell section" id="features">
     <div class="section-head">
-      <h2>核心功能</h2>
-      <p>它不是一个“随机推荐器”，而是一个真正能帮你把今晚菜谱定下来的选择工具。</p>
+      <h2>页面核心亮点</h2>
+      <p>整体视觉延续 App 里的暖橘、奶油白和轻食感，让落地页和实际产品保持同一套情绪与配色。</p>
     </div>
 
     <div class="feature-grid">
       <article class="feature">
         <div class="num">01</div>
-        <h3>拍照添加菜品</h3>
-        <p>支持拍照或从相册选图，给每道菜建立自己的图片和名称，列表不再只是文字。</p>
+        <h3>配色统一</h3>
+        <p>主背景、按钮、卡片和强调色都围绕 App 现有橙色体系展开，不再出现脱节的网页色调。</p>
       </article>
       <article class="feature">
         <div class="num">02</div>
-        <h3>按分类挑选</h3>
-        <p>首页按荤菜、素菜、汤、主食分组展示，先选大类，再挑具体菜品，路径直接清楚。</p>
+        <h3>截图直观</h3>
+        <p>首页和随机页截图直接放入主视觉区域，用户打开页面就能知道 App 当前长什么样。</p>
       </article>
       <article class="feature">
         <div class="num">03</div>
-        <h3>今晚菜单集中显示</h3>
-        <p>“今晚吃什么”页会显示你从首页选中的菜，卡片上有图片、名称和移出按钮。</p>
+        <h3>信息更干净</h3>
+        <p>去掉多余组件后，页面结构更轻，重点只保留品牌、下载入口、功能亮点和真实预览。</p>
       </article>
       <article class="feature">
         <div class="num">04</div>
-        <h3>午夜自动清空</h3>
-        <p>每天 0:00 自动清掉今晚列表，第二天重新选，不会把昨天的菜单带过来。</p>
+        <h3>移动端可看</h3>
+        <p>在较窄屏幕下自动切成单列布局，截图与文字不会再互相压住。</p>
       </article>
     </div>
   </div>
 
   <div class="shell section">
     <div class="section-head">
-      <h2>为什么这个 App 好用</h2>
-      <p>它解决的不是“有没有菜谱”，而是“家里已经有这么多菜，我今晚到底想吃哪几个”。</p>
+      <h2>为什么这个页面更像 App 本身</h2>
+      <p>这次不是单纯换颜色，而是把页面的气质、层次和信息密度都收回到产品当前的视觉基调里。</p>
     </div>
 
     <div class="highlight">
       <section class="panel">
-        <h3>适合谁用</h3>
+        <h3>视觉上统一了什么</h3>
         <div class="list">
-          <div class="list-item">每天都在“吃什么”上犹豫的人</div>
-          <div class="list-item">希望把家常菜、拿手菜整理成图片清单的人</div>
-          <div class="list-item">想用一个简单工具快速确认今晚菜单的人</div>
+          <div class="list-item">使用偏奶油白的大底色，和 App 里大面积浅暖背景保持一致。</div>
+          <div class="list-item">按钮、标签和强调信息统一回到暖橙色，不再出现偏脏或偏灰的冲突色块。</div>
+          <div class="list-item">卡片阴影、圆角和留白都更接近 App 的轻量感，而不是传统网页的硬分栏。</div>
         </div>
       </section>
 
       <section class="panel">
-        <h3>你会实际用到的流程</h3>
+        <h3>页面现在的浏览顺序</h3>
         <div class="list">
-          <div class="list-item">1. 首页给菜品录入照片、名称和分类。</div>
-          <div class="list-item">2. 进入分类，把今晚想吃的菜一个个加入。</div>
-          <div class="list-item">3. 打开“今晚吃什么”，统一看今晚菜单，不合适就直接移掉某一项。</div>
-          <div class="list-item">4. 第二天 0:00 自动清空，新的晚饭重新开始选。</div>
+          <div class="list-item">1. 先看到品牌与下载入口，动作明确。</div>
+          <div class="list-item">2. 再看到一句话价值和产品截图，理解更快。</div>
+          <div class="list-item">3. 下面用简短卡片补充功能亮点，不堆太多说明文字。</div>
+          <div class="list-item">4. 最后用统一性说明收尾，页面整体更完整。</div>
         </div>
       </section>
     </div>
   </div>
 
   <div class="shell">
-    <footer>晚饭吃什么 · 本地菜品管理与今晚菜单选择工具</footer>
+    <footer>What For Dinner · 晚饭选择 App 页面预览</footer>
   </div>
 </body>
 </html>
