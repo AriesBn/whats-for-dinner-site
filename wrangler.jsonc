@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "playful-personal-site",
+  "main": "./worker/index.js",
+  "compatibility_date": "2026-04-21",
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "BUTTON_LINKS",
+      "id": "dea87f1e1d67441bac8cc98abd2ed792",
+      "remote": true
+    }
+  ]
+}

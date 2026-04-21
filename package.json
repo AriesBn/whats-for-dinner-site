@@ -1,0 +1,18 @@
+{
+  "name": "playful-personal-site",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "node ./scripts/prepare-cloudflare-config.mjs && vite preview",
+    "deploy": "node ./scripts/prepare-cloudflare-config.mjs && wrangler deploy",
+    "kv:seed": "node ./scripts/seed-button-links.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.13.5",
+    "vite": "^6.0.0",
+    "wrangler": "^4.12.0"
+  }
+}
