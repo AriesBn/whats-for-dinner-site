@@ -482,7 +482,7 @@ h3 {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .section-heading .eyebrow {
@@ -493,10 +493,12 @@ h3 {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  margin-left: auto;
   color: #42527a;
   font-size: 1rem;
   font-weight: 700;
   text-decoration: none;
+  white-space: nowrap;
   transition:
     color 180ms ease,
     transform 180ms ease;
@@ -896,8 +898,8 @@ h3 {
 
 .book-card {
   position: relative;
-  min-height: 220px;
-  padding: 24px 20px;
+  min-height: 172px;
+  padding: 22px 20px;
   border-radius: 24px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 248, 224, 0.94)),

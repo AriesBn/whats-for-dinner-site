@@ -326,7 +326,7 @@ function renderApp() {
           <a href="#apps">APP</a>
           <a href="#agents">Agent</a>
           <a href="#socials">社交媒体</a>
-          <a href="#notes">心得</a>
+          <a href="/notes.html">图文博客</a>
           <a href="#books">书架</a>
         </nav>
       </header>
