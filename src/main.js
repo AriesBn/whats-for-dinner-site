@@ -17,14 +17,6 @@ const appCards = [
         linkKey: "今晚吃什么",
         iconEmoji: "🍽️",
       },
-      {
-        name: "习惯打卡花园",
-        note: "把连续执行做成有反馈的小成长页面，减少枯燥感。",
-      },
-      {
-        name: "碎片记录盒",
-        note: "随手收纳想法、待办和生活观察，之后再慢慢分类整理。",
-      },
     ],
   },
   {
@@ -354,8 +346,6 @@ function renderApp() {
             <button class="bookmark-button" type="button" data-action="bookmark-site">
               收藏网站
             </button>
-            <div class="sticker sticker-star">Learn</div>
-            <div class="sticker sticker-bubble">Build</div>
             <div class="hero-visual">
               <div class="mini-card mini-card-large">
                 <span>Focus</span>

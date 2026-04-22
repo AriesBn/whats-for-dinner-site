@@ -396,6 +396,10 @@ h3 {
   font-size: 1.2rem;
 }
 
+.mini-card-large {
+  transform: none;
+}
+
 .mini-card-small {
   max-width: 240px;
   justify-self: end;
@@ -1019,6 +1023,12 @@ h3 {
     inset 0 -4px 0 rgba(156, 99, 10, 0.22),
     0 10px 18px rgba(242, 161, 27, 0.24);
   color: #fffef7;
+}
+
+.social-icon-bitcoin svg {
+  width: 24px;
+  height: 24px;
+  transform: translate(0.5px, -0.5px);
 }
 
 .social-icon-bilibili {
