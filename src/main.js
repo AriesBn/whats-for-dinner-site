@@ -465,7 +465,6 @@ function renderApp() {
                   >
                     <span class="book-index">0${index + 1}</span>
                     <h3>${book.title}</h3>
-                    <span class="book-cta">查看真实条目</span>
                   </a>
                 `;
               })

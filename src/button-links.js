@@ -16,11 +16,11 @@ export const buttonLinks = [
   },
   {
     key: "李笑来的《韭菜的自我修养》",
-    url: "https://github.com/xiaolai/the-self-cultivation-of-leeks",
+    url: "https://github.com/xiaolai/the-self-cultivation-of-leeks/blob/master/The-Self-Cultivation-of-Leeks-cn.md",
   },
   {
     key: "《定投改变命运》",
-    url: "https://onregularinvesting.com/",
+    url: "https://ri.firesbox.com/#/cn/",
   },
   {
     key: "《Market Wizards》",
