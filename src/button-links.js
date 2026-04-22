@@ -15,6 +15,14 @@ export const buttonLinks = [
     url: "https://www.goodreads.com/en/book/show/212102.Technical_Analysis_of_the_Financial_Markets",
   },
   {
+    key: "李笑来的《韭菜的自我修养》",
+    url: "https://github.com/xiaolai/the-self-cultivation-of-leeks",
+  },
+  {
+    key: "《定投改变命运》",
+    url: "https://onregularinvesting.com/",
+  },
+  {
     key: "《Market Wizards》",
     url: "https://www.goodreads.com/book/show/966769.Market_Wizards",
   },

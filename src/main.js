@@ -124,10 +124,13 @@ const agentCards = [
 ];
 
 const books = [
-  { title: "《Trading in the Zone》", linkKey: "《Trading in the Zone》" },
   {
-    title: "《Technical Analysis of the Financial Markets》",
-    linkKey: "《Technical Analysis of the Financial Markets》",
+    title: "李笑来的《韭菜的自我修养》",
+    linkKey: "李笑来的《韭菜的自我修养》",
+  },
+  {
+    title: "《定投改变命运》",
+    linkKey: "《定投改变命运》",
   },
   { title: "《Market Wizards》", linkKey: "《Market Wizards》" },
   { title: "《The Daily Trading Coach》", linkKey: "《The Daily Trading Coach》" },

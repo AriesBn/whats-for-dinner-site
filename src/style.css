@@ -26,6 +26,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 120px;
 }
 
 body {
@@ -218,6 +219,11 @@ main {
   overflow: hidden;
 }
 
+.hero,
+.content-section {
+  scroll-margin-top: 120px;
+}
+
 .hero::after {
   content: "";
   position: absolute;
@@ -397,7 +403,7 @@ h3 {
 }
 
 .mini-card-large {
-  transform: none;
+  transform: translateY(-22px);
 }
 
 .mini-card-small {
@@ -1028,7 +1034,7 @@ h3 {
 .social-icon-bitcoin svg {
   width: 24px;
   height: 24px;
-  transform: translate(0.5px, -0.5px);
+  transform: translate(1.8px, -0.5px);
 }
 
 .social-icon-bilibili {
@@ -1133,6 +1139,10 @@ h3 {
 
   .hero-board {
     min-height: 380px;
+  }
+
+  .mini-card-large {
+    transform: translateY(-10px);
   }
 
   .metrics {
