@@ -12,8 +12,10 @@ const appCards = [
     accent: "mint",
     items: [
       {
-        name: "晨间清单板",
-        note: "起床后先勾选最小行动，把一天启动得更轻一点。",
+        name: "今晚吃什么",
+        note: "一个帮你快速决定今天吃什么的小工具，减少纠结，马上出发去吃饭。",
+        linkKey: "今晚吃什么",
+        iconEmoji: "🍽️",
       },
       {
         name: "习惯打卡花园",
@@ -254,12 +256,32 @@ function renderExpandableCard(item, options) {
         <div class="detail-grid">
           ${item.items
             .map(
-              (entry) => `
-                <article class="detail-card">
-                  <strong>${entry.name}</strong>
-                  <p>${entry.note}</p>
-                </article>
-              `,
+              (entry) => {
+                if (entry.linkKey) {
+                  const url = getLink(entry.linkKey);
+                  return `
+                    <a
+                      class="${renderAnchorClasses("detail-card detail-app-link", url)}"
+                      href="${url}"
+                      ${renderAnchorTarget(url)}
+                      aria-label="打开 ${entry.name}"
+                    >
+                      <span class="detail-app-icon" aria-hidden="true">${entry.iconEmoji ?? "✨"}</span>
+                      <span class="detail-app-copy">
+                        <strong>${entry.name}</strong>
+                        <p>${entry.note}</p>
+                      </span>
+                    </a>
+                  `;
+                }
+
+                return `
+                  <article class="detail-card">
+                    <strong>${entry.name}</strong>
+                    <p>${entry.note}</p>
+                  </article>
+                `;
+              },
             )
             .join("")}
         </div>
@@ -308,16 +330,15 @@ function renderApp() {
         <nav class="nav">
           <a href="#apps">APP</a>
           <a href="#agents">Agent</a>
-          <a href="#books">书架</a>
-          <a href="#notes">心得</a>
           <a href="#socials">社交媒体</a>
+          <a href="#notes">心得</a>
+          <a href="#books">书架</a>
         </nav>
       </header>
 
       <main>
         <section class="hero card-panel" id="hero">
           <div class="hero-copy">
-            <p class="eyebrow">playful education style</p>
             <h1>分享个人VIbe出来的APP、交易心得与有用链接</h1>
             <p class="hero-text">
               这里主要展示我正在开发的 APP、正在打磨的 Agent 工作流、影响我很深的交易书籍，
@@ -330,16 +351,15 @@ function renderApp() {
           </div>
 
           <div class="hero-board" aria-label="网站亮点概览">
+            <button class="bookmark-button" type="button" data-action="bookmark-site">
+              收藏网站
+            </button>
             <div class="sticker sticker-star">Learn</div>
             <div class="sticker sticker-bubble">Build</div>
             <div class="hero-visual">
               <div class="mini-card mini-card-large">
                 <span>Focus</span>
                 <strong>APP + Agent + Trading</strong>
-              </div>
-              <div class="mini-card mini-card-small">
-                <span>Style</span>
-                <strong>Colorful, warm, curious</strong>
               </div>
             </div>
             <div class="metrics">
@@ -398,9 +418,44 @@ function renderApp() {
           </div>
         </section>
 
+        <section class="content-section" id="socials">
+          <div class="section-heading">
+            <p class="eyebrow">03. Socials</p>
+            <h2>社交媒体与联系入口</h2>
+          </div>
+          <div class="social-board card-panel" id="social-links">
+            ${socials.map(renderSocialItem).join("")}
+          </div>
+        </section>
+
+        <section class="content-section" id="notes">
+          <div class="section-heading">
+            <p class="eyebrow">04. Notes</p>
+            <div class="section-heading-row">
+              <h2>个人心得分享</h2>
+              <a class="section-more" href="/notes.html">
+                查看更多
+                <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+          </div>
+          <div class="card-grid notes-grid">
+            ${notes
+              .map(
+                (item) => `
+                  <article class="note-card">
+                    <h3>${item.title}</h3>
+                    <p>${item.summary}</p>
+                  </article>
+                `,
+              )
+              .join("")}
+          </div>
+        </section>
+
         <section class="content-section split-section" id="books">
           <div class="section-heading">
-            <p class="eyebrow">03. Trading Books</p>
+            <p class="eyebrow">05. Trading Books</p>
             <h2>我常翻的交易书籍</h2>
             <p>这些书不只是知识库，更是帮我校准心态、纪律和方法的长期参考。</p>
           </div>
@@ -424,35 +479,6 @@ function renderApp() {
               .join("")}
           </div>
         </section>
-
-        <section class="content-section" id="notes">
-          <div class="section-heading">
-            <p class="eyebrow">04. Notes</p>
-            <h2>个人心得分享</h2>
-          </div>
-          <div class="card-grid notes-grid">
-            ${notes
-              .map(
-                (item) => `
-                  <article class="note-card">
-                    <h3>${item.title}</h3>
-                    <p>${item.summary}</p>
-                  </article>
-                `,
-              )
-              .join("")}
-          </div>
-        </section>
-
-        <section class="content-section" id="socials">
-          <div class="section-heading">
-            <p class="eyebrow">05. Socials</p>
-            <h2>社交媒体与联系入口</h2>
-          </div>
-          <div class="social-board card-panel" id="social-links">
-            ${socials.map(renderSocialItem).join("")}
-          </div>
-        </section>
       </main>
 
       <footer class="footer">
@@ -460,6 +486,38 @@ function renderApp() {
       </footer>
     </div>
   `;
+
+  bindBookmarkButton();
+}
+
+function bindBookmarkButton() {
+  const button = document.querySelector('[data-action="bookmark-site"]');
+  if (!button) {
+    return;
+  }
+
+  button.addEventListener("click", async () => {
+    const targetUrl = window.location.origin;
+    const pageTitle = document.title;
+
+    if (window.external?.AddFavorite) {
+      window.external.AddFavorite(targetUrl, pageTitle);
+      return;
+    }
+
+    if (window.sidebar?.addPanel) {
+      window.sidebar.addPanel(pageTitle, targetUrl, "");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(targetUrl);
+    } catch {
+      // Ignore clipboard failures and still show browser shortcut guidance.
+    }
+
+    window.alert("浏览器通常不允许网页直接写入收藏夹。链接已准备好，请按 Ctrl+D（Mac 上是 Command+D）完成收藏。");
+  });
 }
 
 async function hydrateLinksFromKv() {

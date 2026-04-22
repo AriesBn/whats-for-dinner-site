@@ -3,6 +3,10 @@ export const buttonLinks = [
   { key: "找到我", url: "#social-links" },
   { key: "回到顶部", url: "#hero" },
   {
+    key: "今晚吃什么",
+    url: "https://whats-for-dinner-site.dinnerapp.workers.dev/",
+  },
+  {
     key: "《Trading in the Zone》",
     url: "https://www.goodreads.com/book/show/253516.Trading_in_the_Zone",
   },
