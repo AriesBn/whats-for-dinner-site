@@ -403,7 +403,7 @@ h3 {
 }
 
 .mini-card-large {
-  transform: translateY(-22px);
+  transform: translateY(-40px);
 }
 
 .mini-card-small {
@@ -1142,7 +1142,7 @@ h3 {
   }
 
   .mini-card-large {
-    transform: translateY(-10px);
+    transform: translateY(-18px);
   }
 
   .metrics {
