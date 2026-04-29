@@ -2,15 +2,35 @@ import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 const cwd = process.cwd();
-const outputConfigPath = resolve(
-  cwd,
-  "dist",
-  "playful_personal_site",
-  "wrangler.json",
+const outputConfigCandidates = [
+  {
+    absolutePath: resolve(
+      cwd,
+      "dist",
+      "whats_for_dinner_site",
+      "wrangler.json",
+    ),
+    relativePath: "../../dist/whats_for_dinner_site/wrangler.json",
+  },
+  {
+    absolutePath: resolve(
+      cwd,
+      "dist",
+      "playful_personal_site",
+      "wrangler.json",
+    ),
+    relativePath: "../../dist/playful_personal_site/wrangler.json",
+  },
+];
+const selectedOutputConfig = outputConfigCandidates.find(({ absolutePath }) =>
+  existsSync(absolutePath),
 );
 
-if (!existsSync(outputConfigPath)) {
-  console.error("Missing build output:", outputConfigPath);
+if (!selectedOutputConfig) {
+  console.error(
+    "Missing build output:",
+    outputConfigCandidates.map(({ absolutePath }) => absolutePath).join(" or "),
+  );
   console.error("Run `npm run build` before preview or deploy.");
   process.exit(1);
 }
@@ -23,7 +43,7 @@ writeFileSync(
   deployConfigPath,
   JSON.stringify(
     {
-      configPath: "../../dist/playful_personal_site/wrangler.json",
+      configPath: selectedOutputConfig.relativePath,
       auxiliaryWorkers: [],
     },
     null,
