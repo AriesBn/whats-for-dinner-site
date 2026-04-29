@@ -26,11 +26,6 @@ const fallbackFamily = {
   groupName: "王家晚餐组",
   inviteCode: "A7K2Q9",
   shareUrl: `${window.location.origin}/family-groups/fam-demo/tonight-meal?code=A7K2Q9`,
-  members: [
-    { id: "mom", name: "妈妈", role: "host", status: "viewed", note: "18:42 已查看" },
-    { id: "me", name: "你", role: "member", status: "confirmed", note: "18:45 已确认" },
-    { id: "dad", name: "爸爸", role: "member", status: "pending", note: "未回复" },
-  ],
   plan: fallbackRecipe,
 };
 
@@ -75,6 +70,12 @@ const appState = {
   familyStatus: "loading",
   familyError: "",
   family: null,
+  familyRsvp: {
+    viewerName: "",
+    status: "confirmed",
+    submitStatus: "idle",
+    error: "",
+  },
   releaseStatus: "loading",
   release: null,
   toast: "",
@@ -96,13 +97,76 @@ function isCurrentChip(label) {
 }
 
 function getFamilyConfirmationState(family) {
-  if (!family?.members?.length) {
+  if (!family?.responses?.length) {
     return "empty";
   }
 
-  return family.members.every((member) => member.status === "confirmed")
-    ? "done"
-    : "waiting";
+  return family.responses.some((member) => member.status === "confirmed") ? "done" : "waiting";
+}
+
+function formatResponseNote(status, timestamp) {
+  if (!timestamp) {
+    return status === "confirmed" ? "刚刚确认" : status === "viewed" ? "刚刚查看" : "等待回复";
+  }
+
+  const time = new Date(timestamp);
+  const label = Number.isNaN(time.getTime())
+    ? timestamp
+    : time.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+
+  return status === "confirmed" ? `${label} 已确认` : `${label} 已查看`;
+}
+
+function buildFamilyResponses(payload) {
+  const viewers = Array.isArray(payload?.viewers) ? payload.viewers : [];
+  const items = viewers.map((viewer, index) => ({
+    id: `viewer-${index}-${viewer.name ?? "member"}`,
+    name: viewer.name || "家庭成员",
+    role: "member",
+    status: payload?.status === "confirmed" && index === viewers.length - 1 ? "confirmed" : "viewed",
+    note: formatResponseNote(
+      payload?.status === "confirmed" && index === viewers.length - 1 ? "confirmed" : "viewed",
+      viewer.viewedAt,
+    ),
+  }));
+
+  if (!items.length && payload?.status === "confirmed") {
+    items.push({
+      id: "confirmed-anonymous",
+      name: "家庭成员",
+      role: "member",
+      status: "confirmed",
+      note: formatResponseNote("confirmed", payload.updatedAt),
+    });
+  }
+
+  return items;
+}
+
+function normalizeFamilyPayload(payload, baseFamily = {}) {
+  const plan = payload?.meal
+    ? {
+        ...fallbackRecipe,
+        ...payload.meal,
+      }
+    : null;
+
+  return {
+    groupId: payload?.groupId ?? baseFamily.groupId ?? "",
+    groupName: payload?.groupName ?? baseFamily.groupName ?? fallbackFamily.groupName,
+    inviteCode: baseFamily.inviteCode ?? "",
+    shareUrl: payload?.shareUrl ?? baseFamily.shareUrl ?? fallbackFamily.shareUrl,
+    plan,
+    responses: buildFamilyResponses(payload),
+    status: payload?.status ?? "empty",
+    updatedAt: payload?.updatedAt ?? null,
+    updatedBy: payload?.updatedBy ?? null,
+  };
+}
+
+function resetFamilyRsvpFeedback() {
+  appState.familyRsvp.submitStatus = "idle";
+  appState.familyRsvp.error = "";
 }
 
 function renderStatusPill(status) {
@@ -347,11 +411,11 @@ function renderFamily() {
           <h2>分享链接已打开，但今晚菜单还没保存</h2>
         </div>
         <div class="empty-panel">
-          ${
+          <p>${
             appState.family?.groupName
-              ? `<p>${escapeHtml(appState.family.groupName)} 还没有同步今晚菜单，稍后再来看看。</p>`
-              : "当前家庭组还没有同步今晚菜单，稍后再来看看。"
-          }
+              ? `${escapeHtml(appState.family.groupName)} 还没有同步今晚菜单，先在上方保存今晚菜单后再分享给家人。`
+              : "当前家庭组还没有同步今晚菜单，先在上方保存今晚菜单后再分享给家人。"
+          }</p>
         </div>
       </section>
     `;
@@ -371,6 +435,8 @@ function renderFamily() {
 
   const family = appState.family;
   const confirmState = getFamilyConfirmationState(family);
+  const isSubmittingRsvp = appState.familyRsvp.submitStatus === "loading";
+  const rsvpLabel = appState.familyRsvp.status === "confirmed" ? "确认今晚吃这个" : "我已查看，稍后决定";
 
   return `
     <section class="content-panel family-panel" id="family">
@@ -383,18 +449,12 @@ function renderFamily() {
       <div class="family-layout">
         <article class="family-card">
           <div class="member-row">
-            ${family.members
-              .map(
-                (member) => `
-                  <div class="member-pill">
-                    <span class="avatar">${escapeHtml(member.name.slice(0, 1))}</span>
-                    <strong>${escapeHtml(member.name)}</strong>
-                    <small>${member.role === "host" ? "发起人" : "成员"}</small>
-                  </div>
-                `,
-              )
-              .join("")}
-            <button class="member-pill member-pill-invite" type="button" data-action="share-family">邀请</button>
+            <div class="member-pill member-pill-host">
+              <span class="avatar">${escapeHtml((family.updatedBy || "你").slice(0, 1))}</span>
+              <strong>${escapeHtml(family.updatedBy || "你")}</strong>
+              <small>本次同步发起人</small>
+            </div>
+            <button class="member-pill member-pill-invite" type="button" data-action="share-family">邀请家人</button>
           </div>
 
           <div class="sync-banner">
@@ -416,8 +476,47 @@ function renderFamily() {
             </div>
           </div>
 
+          <form class="rsvp-form" id="family-rsvp-form">
+            <div class="rsvp-grid">
+              <label>
+                <span>你的称呼</span>
+                <input
+                  name="viewerName"
+                  maxlength="20"
+                  placeholder="例如：妈妈 / Dad"
+                  value="${escapeHtml(appState.familyRsvp.viewerName)}"
+                  ${isSubmittingRsvp ? "disabled" : ""}
+                />
+              </label>
+              <label>
+                <span>今晚回复</span>
+                <select name="status" ${isSubmittingRsvp ? "disabled" : ""}>
+                  <option value="confirmed" ${appState.familyRsvp.status === "confirmed" ? "selected" : ""}>确认今晚吃这个</option>
+                  <option value="viewed" ${appState.familyRsvp.status === "viewed" ? "selected" : ""}>先查看，稍后决定</option>
+                </select>
+              </label>
+            </div>
+            <div class="card-actions">
+              <button class="button button-primary" type="submit" ${isSubmittingRsvp ? "disabled" : ""}>
+                ${isSubmittingRsvp ? "正在提交..." : rsvpLabel}
+              </button>
+              <span class="inline-help">成员打开分享链接后，可直接在这里回执今晚菜单。</span>
+            </div>
+            ${
+              appState.familyRsvp.submitStatus === "success"
+                ? '<p class="feedback success">已提交 RSVP，家庭晚餐组状态已更新。</p>'
+                : ""
+            }
+            ${
+              appState.familyRsvp.submitStatus === "error"
+                ? `<p class="feedback error">${escapeHtml(appState.familyRsvp.error || "RSVP 提交失败，请稍后重试。")}</p>`
+                : ""
+            }
+          </form>
+
           <div class="timeline">
-            ${family.members
+            ${family.responses.length
+              ? family.responses
               .map(
                 (member) => `
                   <div class="timeline-item">
@@ -429,7 +528,16 @@ function renderFamily() {
                   </div>
                 `,
               )
-              .join("")}
+              .join("")
+              : `
+                <div class="timeline-item timeline-item-empty">
+                  <span class="timeline-dot status-pending" aria-hidden="true"></span>
+                  <div>
+                    <strong>还没有成员回复</strong>
+                    <p>分享出去后，家人在这个页面提交查看或确认，状态才会出现在这里。</p>
+                  </div>
+                </div>
+              `}
           </div>
 
           <div class="card-actions">
@@ -679,8 +787,11 @@ async function ensureFamilyGroup() {
     groupName: created.groupName ?? fallbackFamily.groupName,
     inviteCode: created.inviteCode,
     shareUrl: created.shareUrl ?? fallbackFamily.shareUrl,
-    members: fallbackFamily.members,
-    plan: fallbackRecipe,
+    plan: null,
+    responses: [],
+    status: "empty",
+    updatedAt: null,
+    updatedBy: "你",
   };
 
   return appState.family;
@@ -713,6 +824,7 @@ async function readResponseError(response, fallbackMessage) {
 async function loadFamily() {
   appState.familyStatus = "loading";
   appState.familyError = "";
+  resetFamilyRsvpFeedback();
   renderApp();
 
   try {
@@ -730,30 +842,12 @@ async function loadFamily() {
       throw new Error(await readResponseError(response, "家庭组数据拉取失败。"));
     }
     const data = await response.json();
+    appState.family = normalizeFamilyPayload(data, family);
     if (data.status === "empty" || !data.meal) {
-      appState.family = {
-        groupId: data.groupId ?? family.groupId,
-        groupName: data.groupName ?? family.groupName ?? fallbackFamily.groupName,
-        inviteCode: family.inviteCode,
-        shareUrl: family.shareUrl ?? fallbackFamily.shareUrl,
-        members: [],
-        plan: null,
-      };
       appState.familyStatus = "empty";
       renderApp();
       return;
     }
-    appState.family = {
-      groupId: data.groupId ?? family.groupId,
-      groupName: data.groupName ?? family.groupName ?? fallbackFamily.groupName,
-      inviteCode: family.inviteCode,
-      shareUrl: data.shareUrl ?? family.shareUrl ?? fallbackFamily.shareUrl,
-      members: data.members ?? fallbackFamily.members,
-      plan: {
-        ...fallbackRecipe,
-        ...(data.meal ?? {}),
-      },
-    };
     appState.familyStatus = "ready";
     renderApp();
   } catch (error) {
@@ -810,6 +904,7 @@ async function saveTonight() {
     }
 
     appState.recipeStatus = "saved";
+    resetFamilyRsvpFeedback();
     appState.toast = "已同步到家庭晚餐组";
     await loadFamily();
     renderApp();
@@ -819,6 +914,78 @@ async function saveTonight() {
     }, 2500);
   } catch {
     appState.toast = "保存到今晚失败，请稍后重试";
+    renderApp();
+  }
+}
+
+async function submitFamilyRsvp() {
+  if (!appState.family?.groupId || !appState.family?.inviteCode) {
+    appState.familyRsvp.submitStatus = "error";
+    appState.familyRsvp.error = "当前家庭组链接无效，无法提交 RSVP。";
+    renderApp();
+    return;
+  }
+
+  const viewerName = appState.familyRsvp.viewerName.trim();
+  if (!viewerName) {
+    appState.familyRsvp.submitStatus = "error";
+    appState.familyRsvp.error = "请先填写你的称呼。";
+    renderApp();
+    return;
+  }
+
+  appState.familyRsvp.submitStatus = "loading";
+  appState.familyRsvp.error = "";
+  renderApp();
+
+  try {
+    const response = await fetch(`/api/family-groups/${appState.family.groupId}/tonight-meal/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        code: appState.family.inviteCode,
+        status: appState.familyRsvp.status,
+        viewerName,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(await readResponseError(response, "RSVP 提交失败，请稍后重试。"));
+    }
+
+    const result = await response.json();
+    const currentResponses = Array.isArray(appState.family.responses) ? [...appState.family.responses] : [];
+    const nextStatus = appState.familyRsvp.status;
+    const existingIndex = currentResponses.findIndex((item) => item.name === viewerName);
+    const nextResponse = {
+      id: existingIndex >= 0 ? currentResponses[existingIndex].id : `viewer-${Date.now()}`,
+      name: viewerName,
+      role: "member",
+      status: nextStatus,
+      note: formatResponseNote(nextStatus, new Date().toISOString()),
+    };
+
+    if (existingIndex >= 0) {
+      currentResponses.splice(existingIndex, 1, nextResponse);
+    } else {
+      currentResponses.push(nextResponse);
+    }
+
+    appState.family = {
+      ...appState.family,
+      status: result.status ?? nextStatus,
+      responses: currentResponses,
+    };
+    appState.familyRsvp.submitStatus = "success";
+    appState.toast = nextStatus === "confirmed" ? "已确认今晚菜单" : "已记录查看状态";
+    renderApp();
+    window.setTimeout(() => {
+      appState.toast = "";
+      renderApp();
+    }, 2500);
+  } catch (error) {
+    appState.familyRsvp.submitStatus = "error";
+    appState.familyRsvp.error = error instanceof Error ? error.message : "RSVP 提交失败，请稍后重试。";
     renderApp();
   }
 }
@@ -883,6 +1050,14 @@ function bindEvents() {
     button.addEventListener("click", () => {
       shareFamily();
     });
+  });
+
+  document.querySelector("#family-rsvp-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    appState.familyRsvp.viewerName = formData.get("viewerName")?.toString().trim() ?? "";
+    appState.familyRsvp.status = formData.get("status")?.toString() === "viewed" ? "viewed" : "confirmed";
+    submitFamilyRsvp();
   });
 
   document.querySelector('[data-action="retry-family"]')?.addEventListener("click", () => {
