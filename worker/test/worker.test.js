@@ -88,6 +88,10 @@ test("family group flow supports create, save tonight meal, read meal, and viewe
   );
   assert.equal(createResponse.status, 201);
   const created = await readJson(createResponse);
+  assert.equal(
+    created.shareUrl,
+    `https://example.com/family-groups/${created.groupId}/tonight-meal?code=${created.inviteCode}`,
+  );
 
   const mealPayload = {
     code: created.inviteCode,

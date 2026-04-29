@@ -1,6 +1,6 @@
 import "./style.css";
 
-const APP_VERSION = "v2.3";
+const APP_VERSION = "0.1.0";
 const APP_DATE = new Date().toISOString().slice(0, 10);
 
 const quickChips = ["15分钟快手", "冰箱剩菜", "想吃热乎的"];
@@ -25,7 +25,7 @@ const fallbackFamily = {
   familyId: "fam-demo",
   familyName: "王家晚餐组",
   inviteCode: "A7K2Q9",
-  shareUrl: `${window.location.origin}/?view=family&group=fam-demo&code=A7K2Q9`,
+  shareUrl: `${window.location.origin}/family-groups/fam-demo/tonight-meal?code=A7K2Q9`,
   members: [
     { id: "mom", name: "妈妈", role: "host", status: "viewed", note: "18:42 已查看" },
     { id: "me", name: "你", role: "member", status: "confirmed", note: "18:45 已确认" },

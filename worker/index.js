@@ -1,26 +1,76 @@
-const APP_VERSION = "v2.3";
-const today = new Date().toISOString().slice(0, 10);
-const FALLBACK_IMAGE = "/images/meal-placeholder.jpg";
+import { handleButtonLinks } from "./routes/button-links.js";
+import { HttpError } from "./lib/errors.js";
+import { json } from "./lib/http.js";
+import { kvGetJson, kvPutJson } from "./lib/store.js";
 
-const defaultButtonKeys = [
-  "GitHub",
-  "下载 App / 查看更新",
-  "了解新版本",
-  "查看更新",
-  "帮助中心",
-  "立即生成晚餐方案",
-];
+const APP_VERSION = "0.1.0";
+const IMAGE_PLACEHOLDER_URL = "/images/meal-placeholder.jpg";
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "access-control-allow-origin": "*",
-      "access-control-allow-methods": "GET,POST,PATCH,OPTIONS",
-      "access-control-allow-headers": "content-type",
+function ok(data, status = 200) {
+  return json(data, { status, headers: corsHeaders() });
+}
+
+function corsHeaders() {
+  return {
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "GET,POST,PATCH,OPTIONS",
+    "access-control-allow-headers": "content-type",
+  };
+}
+
+function errorResponse(status, code, message, details) {
+  return json(
+    {
+      error: {
+        code,
+        message,
+        details,
+      },
     },
-  });
+    { status, headers: corsHeaders() },
+  );
+}
+
+async function readJson(request) {
+  const contentType = request.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    throw new HttpError(415, "unsupported_media_type", "Expected application/json request body.");
+  }
+
+  try {
+    return await request.json();
+  } catch {
+    throw new HttpError(400, "invalid_json", "Request body is not valid JSON.");
+  }
+}
+
+function requireObject(value, name = "body") {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new HttpError(400, "invalid_request", `${name} must be a JSON object.`);
+  }
+  return value;
+}
+
+function requireNonEmptyString(value, field) {
+  if (typeof value !== "string" || !value.trim()) {
+    throw new HttpError(400, "invalid_request", `${field} is required.`);
+  }
+  return value.trim();
+}
+
+function normalizeStringArray(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map((item) => String(item || "").trim()).filter(Boolean);
+}
+
+function todayDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function nowIso() {
+  return new Date().toISOString();
 }
 
 function randomId(prefix) {
@@ -28,223 +78,314 @@ function randomId(prefix) {
 }
 
 function randomInviteCode() {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
-}
-
-function getStore(env) {
-  return env.DINNER_STATE || env.DINNER_APP_KV;
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let index = 0; index < 8; index += 1) {
+    code += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return code;
 }
 
 function groupKey(groupId) {
-  return `family:${groupId}`;
+  return `group:${groupId}`;
 }
 
-function buildRecipeFromPayload(payload, imageUrl, fallbackUsed) {
-  const ingredients = Array.isArray(payload.ingredients) ? payload.ingredients.filter(Boolean) : [];
-  const titleBase = ingredients.slice(0, 2).join("");
+function latestMealKey(groupId) {
+  return `group:${groupId}:meal:latest`;
+}
+
+function datedMealKey(groupId, date) {
+  return `group:${groupId}:meal:${date}`;
+}
+
+function recipeKey(recipeId) {
+  return `recipe:${recipeId}`;
+}
+
+function buildShareUrl(baseUrl, groupId, inviteCode) {
+  const url = new URL(baseUrl);
+  url.pathname = `/family-groups/${groupId}/tonight-meal`;
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("code", inviteCode);
+  return url.toString();
+}
+
+async function createGroup(env, request, body) {
+  const groupName = requireNonEmptyString(body.groupName, "groupName");
+  const ownerName = requireNonEmptyString(body.ownerName, "ownerName");
+  const groupId = randomId("grp");
+  const inviteCode = randomInviteCode();
+  const createdAt = nowIso();
+  const shareUrl = buildShareUrl(env.APP_BASE_URL || request.url, groupId, inviteCode);
+  const group = { groupId, groupName, inviteCode, ownerName, createdAt, shareUrl };
+
+  await kvPutJson(env, groupKey(groupId), group);
+
+  return ok({
+    groupId,
+    inviteCode,
+    shareUrl,
+  }, 201);
+}
+
+async function getGroup(env, groupId) {
+  const group = await kvGetJson(env, groupKey(groupId));
+  if (!group) {
+    throw new HttpError(404, "group_not_found", "Family group does not exist.");
+  }
+  return group;
+}
+
+async function getTonightMeal(env, groupId, url) {
+  const code = requireNonEmptyString(url.searchParams.get("code") || "", "code");
+  const group = await getGroup(env, groupId);
+  if (group.inviteCode !== code) {
+    throw new HttpError(403, "invalid_invite_code", "Invite code is invalid.");
+  }
+
+  const latestMeal = await kvGetJson(env, latestMealKey(groupId));
+  if (!latestMeal) {
+    return ok({
+      groupId: group.groupId,
+      groupName: group.groupName,
+      date: todayDate(),
+      status: "empty",
+      updatedAt: null,
+      updatedBy: null,
+      meal: null,
+      viewers: [],
+    });
+  }
+
+  return ok({
+    groupId: group.groupId,
+    groupName: group.groupName,
+    date: latestMeal.date,
+    status: latestMeal.status,
+    updatedAt: latestMeal.updatedAt,
+    updatedBy: latestMeal.updatedBy,
+    meal: latestMeal.meal,
+    viewers: latestMeal.viewers || [],
+  });
+}
+
+function buildRecipe(payload, imageUrl, imageStatus, fallbackUsed) {
+  const ingredients = normalizeStringArray(payload.ingredients);
+  if (!ingredients.length) {
+    throw new HttpError(400, "invalid_request", "ingredients is required.");
+  }
+
+  const servings = Number.isFinite(payload.servings) && payload.servings > 0
+    ? payload.servings
+    : 2;
+  const flavor = typeof payload.flavor === "string" && payload.flavor.trim()
+    ? payload.flavor.trim()
+    : "家常";
+  const title = `${ingredients.slice(0, 2).join("") || "今晚"}暖心晚餐`;
 
   return {
-    recipeId: `rp_${Date.now()}`,
-    title: titleBase ? `${titleBase}暖胃晚餐` : "番茄滑蛋牛肉盖饭",
-    summary: `${payload.servings || 2} 人份，${payload.flavor || "家常口味"}，今晚可以更快定下来。`,
+    recipeId: randomId("rp"),
+    title,
+    summary: `${servings} 人份，${flavor}口味，15 分钟内可准备完成。`,
     imageUrl,
-    imageStatus: fallbackUsed ? "fallback" : "ready",
+    imageStatus,
     fallbackUsed,
-    servings: payload.servings || 2,
-    cookTime: 15,
-    flavor: payload.flavor || "热乎家常",
-    nutrition: "主食、蛋白质和蔬菜搭配完整，适合作为工作日晚餐。",
     ingredients,
     steps: [
-      "先把现有食材按主菜和配菜分开准备",
-      "先炒主菜再补蔬菜，保证 15 到 20 分钟内完成",
-      "出锅后直接保存到今晚并同步给家人",
+      "先清洗并切好主要食材。",
+      "优先处理蛋白质食材，再补蔬菜和调味。",
+      "装盘后立即分享给家庭组，确认今晚菜单。",
     ],
+    servings,
   };
 }
 
-async function readGroup(env, groupId) {
-  const store = getStore(env);
-  if (!store) {
-    return null;
+async function maybeGenerateImage(env, prompt) {
+  if (!env.AI?.run) {
+    throw new Error("AI binding not configured");
   }
-  return store.get(groupKey(groupId), "json");
+
+  const result = await env.AI.run("@cf/stabilityai/stable-diffusion-xl-base-1.0", {
+    prompt,
+  });
+
+  if (result?.imageUrl && typeof result.imageUrl === "string") {
+    return result.imageUrl;
+  }
+
+  if (result instanceof Uint8Array && env.DINNER_IMAGES?.put) {
+    const objectKey = `generated/${Date.now()}.png`;
+    await env.DINNER_IMAGES.put(objectKey, result);
+    const baseUrl = (env.APP_BASE_URL || "").replace(/\/$/, "");
+    return baseUrl ? `${baseUrl}/${objectKey}` : IMAGE_PLACEHOLDER_URL;
+  }
+
+  throw new Error("AI image result not usable");
 }
 
-async function writeGroup(env, group) {
-  const store = getStore(env);
-  if (!store) {
-    return;
-  }
-  await store.put(groupKey(group.groupId), JSON.stringify(group));
-}
-
-async function readButtonLinks(env) {
-  if (!env.BUTTON_LINKS?.get) {
-    return {};
-  }
-
-  const values = await env.BUTTON_LINKS.get(defaultButtonKeys);
-  if (values instanceof Map) {
-    return Object.fromEntries(
-      [...values.entries()].filter(([, value]) => typeof value === "string" && value.length > 0),
-    );
-  }
-
-  const entries = await Promise.all(
-    defaultButtonKeys.map(async (key) => {
-      const value = await env.BUTTON_LINKS.get(key);
-      return [key, value];
-    }),
-  );
-
-  return Object.fromEntries(entries.filter(([, value]) => typeof value === "string" && value.length > 0));
-}
-
-async function handleGenerateImage(request, env) {
-  const payload = await request.json().catch(() => null);
-  if (!payload || !Array.isArray(payload.ingredients) || payload.ingredients.filter(Boolean).length === 0) {
-    return json({ error: "ingredients is required" }, 400);
-  }
+async function generateMealPlan(env, body) {
+  const payload = requireObject(body);
+  const prompt = `Create a home-cooked dinner illustration with ${normalizeStringArray(payload.ingredients).join(", ")}`;
 
   try {
-    const aiResult = await env.AI?.run?.("@cf/stabilityai/stable-diffusion-xl-base-1.0", payload);
-    const imageUrl = aiResult?.imageUrl || "https://cdn.example.com/generated/meal.png";
-    return json(buildRecipeFromPayload(payload, imageUrl, false));
+    const imageUrl = await maybeGenerateImage(env, prompt);
+    const recipe = buildRecipe(payload, imageUrl, "ready", false);
+    await kvPutJson(env, recipeKey(recipe.recipeId), {
+      recipeId: recipe.recipeId,
+      prompt: payload,
+      title: recipe.title,
+      summary: recipe.summary,
+      imageUrl: recipe.imageUrl,
+      imageStatus: recipe.imageStatus,
+      createdAt: nowIso(),
+    });
+    return ok(recipe);
   } catch {
-    return json(buildRecipeFromPayload(payload, FALLBACK_IMAGE, true));
+    const recipe = buildRecipe(payload, IMAGE_PLACEHOLDER_URL, "fallback", true);
+    await kvPutJson(env, recipeKey(recipe.recipeId), {
+      recipeId: recipe.recipeId,
+      prompt: payload,
+      title: recipe.title,
+      summary: recipe.summary,
+      imageUrl: recipe.imageUrl,
+      imageStatus: recipe.imageStatus,
+      createdAt: nowIso(),
+    });
+    return ok(recipe);
   }
 }
 
-async function handleCreateFamily(request, env) {
-  const payload = await request.json().catch(() => ({}));
-  const groupId = randomId("grp");
-  const inviteCode = randomInviteCode();
-  const group = {
+async function saveTonightMeal(env, groupId, body) {
+  const payload = requireObject(body);
+  const code = requireNonEmptyString(payload.code, "code");
+  const updatedBy = requireNonEmptyString(payload.updatedBy || "匿名成员", "updatedBy");
+  const group = await getGroup(env, groupId);
+  if (group.inviteCode !== code) {
+    throw new HttpError(403, "invalid_invite_code", "Invite code is invalid.");
+  }
+
+  const meal = requireObject(payload.meal, "meal");
+  requireNonEmptyString(meal.title, "meal.title");
+  const date = todayDate();
+  const record = {
     groupId,
-    groupName: payload.groupName || payload.familyName || "家庭晚餐组",
-    inviteCode,
-    shareUrl: `${env.APP_BASE_URL || "https://example.com"}/?view=family&group=${groupId}&code=${inviteCode}`,
-    updatedAt: new Date().toISOString(),
-    updatedBy: payload.ownerName || payload.hostName || "你",
-    status: "empty",
-    meal: null,
+    date,
+    status: "shared",
+    updatedAt: nowIso(),
+    updatedBy,
+    meal: {
+      recipeId: typeof meal.recipeId === "string" && meal.recipeId ? meal.recipeId : randomId("rp"),
+      title: meal.title.trim(),
+      summary: typeof meal.summary === "string" ? meal.summary.trim() : "",
+      imageUrl: typeof meal.imageUrl === "string" && meal.imageUrl ? meal.imageUrl : IMAGE_PLACEHOLDER_URL,
+      ingredients: normalizeStringArray(meal.ingredients),
+      steps: normalizeStringArray(meal.steps),
+      servings: Number.isFinite(meal.servings) && meal.servings > 0 ? meal.servings : 2,
+      fallbackUsed: Boolean(meal.fallbackUsed),
+    },
     viewers: [],
   };
 
-  await writeGroup(env, group);
-  return json(group, 201);
-}
+  await Promise.all([
+    kvPutJson(env, latestMealKey(groupId), record),
+    kvPutJson(env, datedMealKey(groupId, date), record),
+  ]);
 
-async function handleGetTonightMeal(url, env, groupId) {
-  const group = await readGroup(env, groupId);
-  if (!group) {
-    return json({ error: "group not found" }, 404);
-  }
-  if (url.searchParams.get("code") !== group.inviteCode) {
-    return json({ error: "invalid invite code" }, 403);
-  }
-  return json(group);
-}
-
-async function handleSaveTonightMeal(request, env, groupId) {
-  const group = await readGroup(env, groupId);
-  if (!group) {
-    return json({ error: "group not found" }, 404);
-  }
-
-  const payload = await request.json().catch(() => null);
-  if (!payload?.meal?.title) {
-    return json({ error: "meal.title is required" }, 400);
-  }
-  if (payload.code && payload.code !== group.inviteCode) {
-    return json({ error: "invalid invite code" }, 403);
-  }
-
-  const nextGroup = {
-    ...group,
-    updatedAt: new Date().toISOString(),
-    updatedBy: payload.updatedBy || group.updatedBy,
-    status: "shared",
-    meal: payload.meal,
-  };
-  await writeGroup(env, nextGroup);
-
-  return json({ ok: true, status: "shared", groupId, meal: nextGroup.meal });
-}
-
-async function handleUpdateStatus(request, env, groupId) {
-  const group = await readGroup(env, groupId);
-  if (!group) {
-    return json({ error: "group not found" }, 404);
-  }
-
-  const payload = await request.json().catch(() => null);
-  if (!payload?.status || !payload?.viewerName) {
-    return json({ error: "status and viewerName are required" }, 400);
-  }
-  if (payload.code && payload.code !== group.inviteCode) {
-    return json({ error: "invalid invite code" }, 403);
-  }
-
-  const viewers = Array.isArray(group.viewers) ? group.viewers.filter((item) => item.name !== payload.viewerName) : [];
-  viewers.push({
-    name: payload.viewerName,
-    status: payload.status,
-    updatedAt: new Date().toISOString(),
+  return ok({
+    ok: true,
+    status: record.status,
+    updatedAt: record.updatedAt,
   });
+}
 
-  const nextGroup = {
-    ...group,
-    updatedAt: new Date().toISOString(),
-    status: payload.status,
-    viewers,
+async function updateTonightMealStatus(env, groupId, body) {
+  const payload = requireObject(body);
+  const code = requireNonEmptyString(payload.code, "code");
+  const status = requireNonEmptyString(payload.status, "status");
+  const viewerName = typeof payload.viewerName === "string" ? payload.viewerName.trim() : "";
+  const group = await getGroup(env, groupId);
+  if (group.inviteCode !== code) {
+    throw new HttpError(403, "invalid_invite_code", "Invite code is invalid.");
+  }
+
+  const latestMeal = await kvGetJson(env, latestMealKey(groupId));
+  if (!latestMeal) {
+    throw new HttpError(404, "tonight_meal_not_found", "Tonight meal does not exist.");
+  }
+
+  const next = {
+    ...latestMeal,
+    status,
+    viewers: latestMeal.viewers || [],
   };
-  await writeGroup(env, nextGroup);
-  return json({ ok: true, status: nextGroup.status, viewers: nextGroup.viewers });
+  if (status === "viewed" && viewerName) {
+    next.viewers = [
+      ...next.viewers.filter((viewer) => viewer.name !== viewerName),
+      { name: viewerName, viewedAt: nowIso() },
+    ];
+  }
+
+  await Promise.all([
+    kvPutJson(env, latestMealKey(groupId), next),
+    kvPutJson(env, datedMealKey(groupId, next.date), next),
+  ]);
+
+  return ok({
+    ok: true,
+    status: next.status,
+  });
 }
 
 export async function handleRequest(request, env) {
   const url = new URL(request.url);
 
-  if (request.method === "OPTIONS") {
-    return json({ ok: true });
-  }
+  try {
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders() });
+    }
 
-  if (url.pathname === "/api/button-links" && request.method === "GET") {
-    return json({ links: await readButtonLinks(env) });
-  }
+    if (url.pathname === "/api/button-links" && request.method === "GET") {
+      return handleButtonLinks(env);
+    }
 
-  if (url.pathname === "/api/release" && request.method === "GET") {
-    return json({
-      version: env.APP_VERSION || APP_VERSION,
-      publishedAt: today,
-      features: ["AI 生菜谱图", "家庭共享晚餐", "官网已更新"],
-    });
-  }
+    if (url.pathname === "/api/release" && request.method === "GET") {
+      return ok({
+        version: env.APP_VERSION || APP_VERSION,
+        publishedAt: todayDate(),
+        features: ["AI 生菜谱图", "家庭组共享今晚菜谱", "官网更新"],
+      });
+    }
 
-  if (url.pathname === "/api/meal-plan/generate-image" && request.method === "POST") {
-    return handleGenerateImage(request, env);
-  }
+    if (url.pathname === "/api/meal-plan/generate-image" && request.method === "POST") {
+      return generateMealPlan(env, await readJson(request));
+    }
 
-  if (url.pathname === "/api/family-groups" && request.method === "POST") {
-    return handleCreateFamily(request, env);
-  }
+    if (url.pathname === "/api/family-groups" && request.method === "POST") {
+      return createGroup(env, request, await readJson(request));
+    }
 
-  const mealMatch = url.pathname.match(/^\/api\/family-groups\/([^/]+)\/tonight-meal$/);
-  if (mealMatch && request.method === "GET") {
-    return handleGetTonightMeal(url, env, mealMatch[1]);
-  }
-  if (mealMatch && request.method === "POST") {
-    return handleSaveTonightMeal(request, env, mealMatch[1]);
-  }
+    const mealMatch = url.pathname.match(/^\/api\/family-groups\/([^/]+)\/tonight-meal$/);
+    if (mealMatch && request.method === "GET") {
+      return getTonightMeal(env, mealMatch[1], url);
+    }
+    if (mealMatch && request.method === "POST") {
+      return saveTonightMeal(env, mealMatch[1], await readJson(request));
+    }
 
-  const statusMatch = url.pathname.match(/^\/api\/family-groups\/([^/]+)\/tonight-meal\/status$/);
-  if (statusMatch && request.method === "PATCH") {
-    return handleUpdateStatus(request, env, statusMatch[1]);
-  }
+    const statusMatch = url.pathname.match(/^\/api\/family-groups\/([^/]+)\/tonight-meal\/status$/);
+    if (statusMatch && request.method === "PATCH") {
+      return updateTonightMealStatus(env, statusMatch[1], await readJson(request));
+    }
 
-  return json({ error: "not found" }, 404);
+    return errorResponse(404, "not_found", "Route not found.");
+  } catch (error) {
+    if (error instanceof HttpError) {
+      return errorResponse(error.status, error.code, error.message, error.details);
+    }
+    console.error("Unhandled worker error", error);
+    return errorResponse(500, "internal_error", "Unexpected server error.");
+  }
 }
 
 export default {

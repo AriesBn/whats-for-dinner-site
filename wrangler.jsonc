@@ -14,12 +14,23 @@
       "remote": true
     },
     {
-      "binding": "DINNER_STATE",
-      "id": "dinner-state-preview",
-      "remote": false
+      "binding": "DINNER_APP_KV",
+      "id": "REPLACE_WITH_DINNER_APP_KV_ID",
+      "preview_id": "REPLACE_WITH_DINNER_APP_KV_PREVIEW_ID"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "DINNER_IMAGES",
+      "bucket_name": "dinner-images-prod",
+      "preview_bucket_name": "dinner-images-preview"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
   "vars": {
-    "APP_VERSION": "v2.3"
+    "APP_VERSION": "0.1.0",
+    "APP_BASE_URL": "https://whats-for-dinner-site.dinnerapp.workers.dev"
   }
 }
