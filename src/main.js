@@ -616,7 +616,11 @@ async function generateRecipe() {
       ...fallbackRecipe,
       ...data,
       servings: data.servings ?? appState.plannerForm.servings,
-      flavor: data.flavor ?? appState.plannerForm.flavor || appState.selectedChip || "家常暖胃",
+      flavor:
+        data.flavor ??
+        appState.plannerForm.flavor ??
+        appState.selectedChip ??
+        "家常暖胃",
     };
     appState.recipeStatus = "success";
     renderApp();
@@ -633,12 +637,46 @@ async function generateRecipe() {
   }
 }
 
+async function ensureFamilyGroup() {
+  if (appState.family?.familyId && appState.family?.inviteCode) {
+    return appState.family;
+  }
+
+  const createResponse = await fetch("/api/family-groups", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      groupName: fallbackFamily.familyName,
+      ownerName: "你",
+    }),
+  });
+
+  if (!createResponse.ok) {
+    throw new Error("家庭组创建失败。");
+  }
+
+  const created = await createResponse.json();
+  appState.family = {
+    familyId: created.groupId,
+    familyName: created.groupName,
+    inviteCode: created.inviteCode,
+    shareUrl: created.shareUrl,
+    members: fallbackFamily.members,
+    plan: fallbackRecipe,
+  };
+
+  return appState.family;
+}
+
 async function loadFamily() {
   appState.familyStatus = "loading";
   renderApp();
 
   try {
-    const response = await fetch("/api/family-groups/demo-group/tonight-meal?code=A7K2Q9");
+    const family = await ensureFamilyGroup();
+    const response = await fetch(
+      `/api/family-groups/${family.familyId}/tonight-meal?code=${encodeURIComponent(family.inviteCode)}`,
+    );
     if (!response.ok) {
       throw new Error("家庭组数据拉取失败。");
     }
@@ -682,10 +720,12 @@ async function saveTonight() {
   }
 
   try {
-    const response = await fetch("/api/family-groups/demo-group/tonight-meal", {
+    const family = await ensureFamilyGroup();
+    const response = await fetch(`/api/family-groups/${family.familyId}/tonight-meal`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        code: family.inviteCode,
         updatedBy: "你",
         date: APP_DATE,
         meal: {
