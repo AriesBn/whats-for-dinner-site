@@ -182,7 +182,7 @@ function renderStatusPill(status) {
 }
 
 function renderHero() {
-  const onlineCount = appState.family?.members?.length ?? 3;
+  const onlineCount = appState.family ? Math.max((appState.family.responses?.length ?? 0) + 1, 1) : 1;
   return `
     <section class="hero-panel" id="hero">
       <div class="hero-copy">
@@ -227,7 +227,7 @@ function renderHero() {
         <div class="family-summary">
           <div>
             <span class="summary-label">家庭晚餐组</span>
-            <strong>${onlineCount} 位成员在线，随时同步今晚菜单</strong>
+            <strong>${onlineCount} 位成员已进入今晚菜单链路</strong>
           </div>
           <a href="#family" class="summary-link">查看共享状态</a>
         </div>
