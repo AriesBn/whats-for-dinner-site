@@ -339,6 +339,24 @@ function renderFamily() {
     `;
   }
 
+  if (appState.familyStatus === "empty") {
+    return `
+      <section class="content-panel family-panel" id="family">
+        <div class="section-heading">
+          <p class="eyebrow">家庭晚餐组</p>
+          <h2>分享链接已打开，但今晚菜单还没保存</h2>
+        </div>
+        <div class="empty-panel">
+          ${
+            appState.family?.groupName
+              ? `<p>${escapeHtml(appState.family.groupName)} 还没有同步今晚菜单，稍后再来看看。</p>`
+              : "当前家庭组还没有同步今晚菜单，稍后再来看看。"
+          }
+        </div>
+      </section>
+    `;
+  }
+
   if (!appState.family) {
     return `
       <section class="content-panel family-panel" id="family">
@@ -668,23 +686,67 @@ async function ensureFamilyGroup() {
   return appState.family;
 }
 
+function getFamilyShareContext() {
+  const url = new URL(window.location.href);
+  const match = url.pathname.match(/^\/family-groups\/([^/]+)\/tonight-meal\/?$/);
+  const code = url.searchParams.get("code")?.trim() ?? "";
+  if (!match || !code) {
+    return null;
+  }
+
+  return {
+    groupId: decodeURIComponent(match[1]),
+    inviteCode: code,
+    shareUrl: url.toString(),
+  };
+}
+
+async function readResponseError(response, fallbackMessage) {
+  try {
+    const data = await response.json();
+    return data?.error?.message || fallbackMessage;
+  } catch {
+    return fallbackMessage;
+  }
+}
+
 async function loadFamily() {
   appState.familyStatus = "loading";
+  appState.familyError = "";
   renderApp();
 
   try {
-    const family = await ensureFamilyGroup();
+    const sharedFamily = getFamilyShareContext();
+    const family = sharedFamily
+      ? {
+          ...appState.family,
+          ...sharedFamily,
+        }
+      : await ensureFamilyGroup();
     const response = await fetch(
       `/api/family-groups/${family.groupId}/tonight-meal?code=${encodeURIComponent(family.inviteCode)}`,
     );
     if (!response.ok) {
-      throw new Error("家庭组数据拉取失败。");
+      throw new Error(await readResponseError(response, "家庭组数据拉取失败。"));
     }
     const data = await response.json();
+    if (data.status === "empty" || !data.meal) {
+      appState.family = {
+        groupId: data.groupId ?? family.groupId,
+        groupName: data.groupName ?? family.groupName ?? fallbackFamily.groupName,
+        inviteCode: family.inviteCode,
+        shareUrl: family.shareUrl ?? fallbackFamily.shareUrl,
+        members: [],
+        plan: null,
+      };
+      appState.familyStatus = "empty";
+      renderApp();
+      return;
+    }
     appState.family = {
       groupId: data.groupId ?? family.groupId,
       groupName: data.groupName ?? family.groupName ?? fallbackFamily.groupName,
-      inviteCode: data.inviteCode ?? fallbackFamily.inviteCode,
+      inviteCode: family.inviteCode,
       shareUrl: data.shareUrl ?? family.shareUrl ?? fallbackFamily.shareUrl,
       members: data.members ?? fallbackFamily.members,
       plan: {
