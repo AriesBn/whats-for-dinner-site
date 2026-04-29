@@ -1,23 +1,23 @@
-export function familyKey(familyId) {
-  return `family:${familyId}`;
+export function groupKey(groupId) {
+  return `group:${groupId}`;
 }
 
-export function familyMembersKey(familyId) {
-  return `family-members:${familyId}`;
+export function groupMembersKey(groupId) {
+  return `group-members:${groupId}`;
 }
 
 export function inviteCodeKey(inviteCode) {
-  return `family-invite:${inviteCode}`;
+  return `group-invite:${inviteCode}`;
 }
 
-export function dinnerPlanKey(familyId, date) {
-  return `dinner-plan:${familyId}:${date}`;
+export function tonightMealKey(groupId, date) {
+  return `group:${groupId}:tonight-meal:${date}`;
 }
 
-export function dinnerRsvpKey(familyId, date) {
-  return `dinner-rsvp:${familyId}:${date}`;
+export function mealResponseKey(groupId, date) {
+  return `group:${groupId}:meal-response:${date}`;
 }
 
-export function dinnerImageAttemptKey(familyId, date) {
-  return `dinner-image-attempts:${familyId}:${date}`;
+export function dinnerImageAttemptKey(groupId, date) {
+  return `group:${groupId}:meal-image-attempts:${date}`;
 }

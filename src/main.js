@@ -22,8 +22,8 @@ const fallbackRecipe = {
 };
 
 const fallbackFamily = {
-  familyId: "fam-demo",
-  familyName: "王家晚餐组",
+  groupId: "fam-demo",
+  groupName: "王家晚餐组",
   inviteCode: "A7K2Q9",
   shareUrl: `${window.location.origin}/family-groups/fam-demo/tonight-meal?code=A7K2Q9`,
   members: [
@@ -122,7 +122,7 @@ function renderHero() {
   return `
     <section class="hero-panel" id="hero">
       <div class="hero-copy">
-        <p class="eyebrow">今晚吃什么 v2.3</p>
+        <p class="eyebrow">今晚吃什么 ${escapeHtml(APP_VERSION)}</p>
         <h1>和家人今晚吃得更快定下来</h1>
         <p class="hero-text">
           AI 帮你想菜，家人一起确认今晚菜单。别再围着餐桌问半天，今晚吃什么现在两步定下来。
@@ -638,7 +638,7 @@ async function generateRecipe() {
 }
 
 async function ensureFamilyGroup() {
-  if (appState.family?.familyId && appState.family?.inviteCode) {
+  if (appState.family?.groupId && appState.family?.inviteCode) {
     return appState.family;
   }
 
@@ -646,7 +646,7 @@ async function ensureFamilyGroup() {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      groupName: fallbackFamily.familyName,
+      groupName: fallbackFamily.groupName,
       ownerName: "你",
     }),
   });
@@ -657,10 +657,10 @@ async function ensureFamilyGroup() {
 
   const created = await createResponse.json();
   appState.family = {
-    familyId: created.groupId,
-    familyName: created.groupName,
+    groupId: created.groupId,
+    groupName: created.groupName ?? fallbackFamily.groupName,
     inviteCode: created.inviteCode,
-    shareUrl: created.shareUrl,
+    shareUrl: created.shareUrl ?? fallbackFamily.shareUrl,
     members: fallbackFamily.members,
     plan: fallbackRecipe,
   };
@@ -675,17 +675,17 @@ async function loadFamily() {
   try {
     const family = await ensureFamilyGroup();
     const response = await fetch(
-      `/api/family-groups/${family.familyId}/tonight-meal?code=${encodeURIComponent(family.inviteCode)}`,
+      `/api/family-groups/${family.groupId}/tonight-meal?code=${encodeURIComponent(family.inviteCode)}`,
     );
     if (!response.ok) {
       throw new Error("家庭组数据拉取失败。");
     }
     const data = await response.json();
     appState.family = {
-      familyId: data.groupId,
-      familyName: data.groupName,
+      groupId: data.groupId ?? family.groupId,
+      groupName: data.groupName ?? family.groupName ?? fallbackFamily.groupName,
       inviteCode: data.inviteCode ?? fallbackFamily.inviteCode,
-      shareUrl: data.shareUrl ?? fallbackFamily.shareUrl,
+      shareUrl: data.shareUrl ?? family.shareUrl ?? fallbackFamily.shareUrl,
       members: data.members ?? fallbackFamily.members,
       plan: {
         ...fallbackRecipe,
@@ -721,7 +721,7 @@ async function saveTonight() {
 
   try {
     const family = await ensureFamilyGroup();
-    const response = await fetch(`/api/family-groups/${family.familyId}/tonight-meal`, {
+    const response = await fetch(`/api/family-groups/${family.groupId}/tonight-meal`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -762,7 +762,7 @@ async function saveTonight() {
 }
 
 async function shareFamily() {
-  const shareText = `${appState.family?.familyName ?? "家庭晚餐组"}已同步今晚菜单：${appState.family?.plan?.title ?? fallbackRecipe.title}`;
+  const shareText = `${appState.family?.groupName ?? "家庭晚餐组"}已同步今晚菜单：${appState.family?.plan?.title ?? fallbackRecipe.title}`;
 
   if (navigator.share) {
     try {

@@ -1,10 +1,10 @@
 import { HttpError } from "./errors.js";
 import { createFamilyId, createInviteCode, createMemberId } from "./ids.js";
-import { familyKey, familyMembersKey, inviteCodeKey } from "./keys.js";
+import { groupKey, groupMembersKey, inviteCodeKey } from "./keys.js";
 import { kvGetJson, kvGetText, kvPutJson, kvPutText } from "./store.js";
 
 export async function getFamily(env, familyId) {
-  const family = await kvGetJson(env, familyKey(familyId));
+  const family = await kvGetJson(env, groupKey(familyId));
   if (!family) {
     throw new HttpError(404, "family_not_found", "Family not found.", { familyId });
   }
@@ -12,7 +12,7 @@ export async function getFamily(env, familyId) {
 }
 
 export async function getFamilyMembers(env, familyId) {
-  return kvGetJson(env, familyMembersKey(familyId), []);
+  return kvGetJson(env, groupMembersKey(familyId), []);
 }
 
 export async function requireMember(env, familyId, memberId) {
@@ -71,8 +71,8 @@ export async function createFamily(env, familyName, hostName, nowIso) {
   };
 
   await Promise.all([
-    kvPutJson(env, familyKey(familyId), family),
-    kvPutJson(env, familyMembersKey(familyId), [hostMember]),
+    kvPutJson(env, groupKey(familyId), family),
+    kvPutJson(env, groupMembersKey(familyId), [hostMember]),
     kvPutText(env, inviteCodeKey(inviteCode), familyId),
   ]);
 
@@ -102,7 +102,7 @@ export async function joinFamily(env, inviteCode, displayName, nowIso) {
     joinedAt: nowIso,
   };
 
-  await kvPutJson(env, familyMembersKey(familyId), [...members, member]);
+  await kvPutJson(env, groupMembersKey(familyId), [...members, member]);
 
   return { family, member, reused: false };
 }
