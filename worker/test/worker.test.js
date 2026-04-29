@@ -75,7 +75,7 @@ test("GET /api/button-links preserves existing behavior", async () => {
   });
 });
 
-test("family group flow supports create, save tonight meal, read meal, and viewed status", async () => {
+test("family group flow supports create, save tonight meal, read meal, and RSVP status update", async () => {
   const env = createEnv();
 
   const createResponse = await handleRequest(
@@ -129,27 +129,80 @@ test("family group flow supports create, save tonight meal, read meal, and viewe
   assert.equal(meal.groupName, "王家晚餐组");
   assert.equal(meal.meal.title, "清爽生菜鸡蛋卷");
 
-  const viewedResponse = await handleRequest(
+  const rsvpResponse = await handleRequest(
     new Request(`https://app.test/api/family-groups/${created.groupId}/tonight-meal/status`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         code: created.inviteCode,
-        status: "viewed",
-        viewerName: "Dad",
+        status: "going",
       }),
     }),
     env,
   );
-  assert.equal(viewedResponse.status, 200);
+  assert.equal(rsvpResponse.status, 200);
+  assert.deepEqual(await readJson(rsvpResponse), {
+    ok: true,
+    status: "going",
+  });
 
-  const viewedMealResponse = await handleRequest(
+  const updatedMealResponse = await handleRequest(
     new Request(`https://app.test/api/family-groups/${created.groupId}/tonight-meal?code=${created.inviteCode}`),
     env,
   );
-  const viewedMeal = await readJson(viewedMealResponse);
-  assert.equal(viewedMeal.status, "viewed");
-  assert.equal(viewedMeal.viewers[0].name, "Dad");
+  const updatedMeal = await readJson(updatedMealResponse);
+  assert.equal(updatedMeal.status, "going");
+  assert.deepEqual(updatedMeal.viewers, []);
+});
+
+test("PATCH /api/family-groups/:groupId/tonight-meal/status rejects unsupported RSVP status", async () => {
+  const env = createEnv();
+
+  const createResponse = await handleRequest(
+    new Request("https://app.test/api/family-groups", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ groupName: "王家晚餐组", ownerName: "Mia" }),
+    }),
+    env,
+  );
+  const created = await readJson(createResponse);
+
+  await handleRequest(
+    new Request(`https://app.test/api/family-groups/${created.groupId}/tonight-meal`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        code: created.inviteCode,
+        updatedBy: "Mia",
+        meal: { title: "清炒生菜" },
+      }),
+    }),
+    env,
+  );
+
+  const response = await handleRequest(
+    new Request(`https://app.test/api/family-groups/${created.groupId}/tonight-meal/status`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        code: created.inviteCode,
+        status: "maybe",
+      }),
+    }),
+    env,
+  );
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await readJson(response), {
+    error: {
+      code: "validation_error",
+      message: "status must be one of going, late, skip.",
+      details: {
+        field: "status",
+      },
+    },
+  });
 });
 
 test("generate image returns recipe with AI image when binding succeeds", async () => {

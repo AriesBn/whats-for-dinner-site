@@ -2,6 +2,7 @@ import { handleButtonLinks } from "./routes/button-links.js";
 import { HttpError } from "./lib/errors.js";
 import { json } from "./lib/http.js";
 import { kvGetJson, kvPutJson } from "./lib/store.js";
+import { validateRsvpStatus } from "./lib/validation.js";
 
 const APP_VERSION = "0.1.0";
 const IMAGE_PLACEHOLDER_URL = "/images/meal-placeholder.jpg";
@@ -302,8 +303,7 @@ async function saveTonightMeal(env, groupId, body) {
 async function updateTonightMealStatus(env, groupId, body) {
   const payload = requireObject(body);
   const code = requireNonEmptyString(payload.code, "code");
-  const status = requireNonEmptyString(payload.status, "status");
-  const viewerName = typeof payload.viewerName === "string" ? payload.viewerName.trim() : "";
+  const status = validateRsvpStatus(payload.status);
   const group = await getGroup(env, groupId);
   if (group.inviteCode !== code) {
     throw new HttpError(403, "invalid_invite_code", "Invite code is invalid.");
@@ -319,12 +319,6 @@ async function updateTonightMealStatus(env, groupId, body) {
     status,
     viewers: latestMeal.viewers || [],
   };
-  if (status === "viewed" && viewerName) {
-    next.viewers = [
-      ...next.viewers.filter((viewer) => viewer.name !== viewerName),
-      { name: viewerName, viewedAt: nowIso() },
-    ];
-  }
 
   await Promise.all([
     kvPutJson(env, latestMealKey(groupId), next),
@@ -358,24 +352,24 @@ export async function handleRequest(request, env) {
     }
 
     if (url.pathname === "/api/meal-plan/generate-image" && request.method === "POST") {
-      return generateMealPlan(env, await readJson(request));
+      return await generateMealPlan(env, await readJson(request));
     }
 
     if (url.pathname === "/api/family-groups" && request.method === "POST") {
-      return createGroup(env, request, await readJson(request));
+      return await createGroup(env, request, await readJson(request));
     }
 
     const mealMatch = url.pathname.match(/^\/api\/family-groups\/([^/]+)\/tonight-meal$/);
     if (mealMatch && request.method === "GET") {
-      return getTonightMeal(env, mealMatch[1], url);
+      return await getTonightMeal(env, mealMatch[1], url);
     }
     if (mealMatch && request.method === "POST") {
-      return saveTonightMeal(env, mealMatch[1], await readJson(request));
+      return await saveTonightMeal(env, mealMatch[1], await readJson(request));
     }
 
     const statusMatch = url.pathname.match(/^\/api\/family-groups\/([^/]+)\/tonight-meal\/status$/);
     if (statusMatch && request.method === "PATCH") {
-      return updateTonightMealStatus(env, statusMatch[1], await readJson(request));
+      return await updateTonightMealStatus(env, statusMatch[1], await readJson(request));
     }
 
     return errorResponse(404, "not_found", "Route not found.");
