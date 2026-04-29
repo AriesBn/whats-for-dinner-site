@@ -103,14 +103,13 @@ export default {
     }
 
     if (url.pathname === "/api/button-links" && request.method === "GET") {
-      const links = { ...defaultButtonLinks };
       if (env.BUTTON_LINKS?.get) {
         const entries = await Promise.all(
           Object.keys(defaultButtonLinks).map(async (key) => [key, (await env.BUTTON_LINKS.get(key)) || defaultButtonLinks[key]]),
         );
         return json({ links: Object.fromEntries(entries) });
       }
-      return json({ links });
+      return json({ links: defaultButtonLinks });
     }
 
     if (url.pathname === "/api/release" && request.method === "GET") {
