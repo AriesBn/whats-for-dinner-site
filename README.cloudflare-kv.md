@@ -55,8 +55,34 @@ npm run dev
 
 Worker 会从 `BUTTON_LINKS` 里读取同名 key，并覆盖前端默认链接。
 
-## 6. 部署
+## 6. 构建生产包
+
+```bash
+npm run build
+```
+
+用途：执行 Vite 生产构建，输出可部署的前端静态资源（通常在 `dist/` 目录）。
+
+## 7. 预览生产包
+
+```bash
+npm run preview
+```
+
+用途：在本地启动预览服务，验证 `npm run build` 产物在生产模式下的效果。
+
+## 8. 部署
 
 ```bash
 npm run deploy
 ```
+
+用途：将站点和 Worker 发布到 Cloudflare（请在确认配置与内容无误后手动执行）。
+
+## 9. 初始化/更新 KV 数据
+
+```bash
+npm run kv:seed
+```
+
+用途：把 `src/button-links.js` 中的按钮键值对批量写入远端 `BUTTON_LINKS` KV，用于初始化或覆盖更新链接数据。
