@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "playful-personal-site",
+  "name": "whats-for-dinner-site",
   "main": "./worker/index.js",
   "compatibility_date": "2026-04-21",
   "assets": {
